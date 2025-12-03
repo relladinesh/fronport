@@ -13,25 +13,21 @@ import DLetter3DLoader from '../component/Dloader';
 import DebugAnimations from '@/component/motion';
 
 /**
- * Page with fixed loader overlay that fully covers the viewport
+ * Page with a black main background so all components render on a dark canvas.
+ * - Wraps the whole app content in a root container with bg-black and text-white.
+ * - Adds a small helper class .app-main that ensures children can use their own glassy backgrounds
+ *   and that text defaults to white unless components explicitly override it.
  *
- * Changes:
- * - Overlay now uses a solid black background (no transparency) so nothing shows through.
- * - Overlay blocks pointer events while visible.
- * - While the loader is visible, document.body overflow is hidden to prevent scrolling.
+ * Drop this file into app/page.jsx replacing your existing file.
  */
 
 export default function Page() {
-  // control whether loader is mounted at all (removed after fade completes)
   const [showLoader, setShowLoader] = useState(true);
-  // control overlay opacity/visibility for fade animation (not strictly required here)
   const [overlayVisible, setOverlayVisible] = useState(true);
 
-  // Configuration
-  const loaderDurationMs = 6000; // show loader for exactly 5 seconds (change as needed)
-  const fadeOutMs = 420; // duration of fade out (ms)
+  const loaderDurationMs = 6000;
+  const fadeOutMs = 420;
 
-  // Prevent page scrolling while loader is visible
   useEffect(() => {
     if (showLoader) {
       const prev = document.body.style.overflow;
@@ -44,82 +40,80 @@ export default function Page() {
   }, [showLoader]);
 
   useEffect(() => {
-    // start the fixed timer on mount
     const t = setTimeout(() => {
-      // start fade-out visually (if you want smooth fade)
       setOverlayVisible(false);
-      // after fade completes, unmount loader completely
-      const u = setTimeout(() => {
-        setShowLoader(false);
-      }, fadeOutMs);
-      // cleanup inner timeout if component unmounts early
+      const u = setTimeout(() => setShowLoader(false), fadeOutMs);
       return () => clearTimeout(u);
     }, loaderDurationMs);
-
-    return () => {
-      clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => clearTimeout(t);
   }, []);
 
   return (
     <>
-      {/* Full-screen loader overlay (renders only while showLoader is true) */}
       {showLoader && (
         <div
           aria-hidden={!overlayVisible}
-          // solid black full-screen overlay. pointer-events-auto ensures it blocks interactions.
           className={`fixed inset-0 z-[99999] flex items-center justify-center bg-black pointer-events-auto transition-opacity duration-400 ${
             overlayVisible ? 'opacity-100' : 'opacity-0'
           }`}
-          style={{
-            // extra safety: ensure it covers everything visually (in case of other high-z elements)
-            backgroundColor: '#000',
-          }}
+          style={{ backgroundColor: '#000' }}
         >
           <div className="flex flex-col items-center gap-6">
-            {/* D letter 3D loader - client component */}
             <DLetter3DLoader size={220} depth={60} colorA="#ff7ab6" colorB="#ffd36b" speed={7.6} />
             <div className="text-sm text-slate-200/90">Loading — preparing the experience</div>
           </div>
         </div>
       )}
 
-      {/* Main page content (rendered under the loader) */}
-      <Nav />
-      <main>
-        <Hero character="/character.png" />
+      <div className="app-root bg-black text-white min-h-screen">
+        <style>{`
+          /* Ensures default body-level background is black for any non-tailwind consumers */
+          .app-root { background-color: #000 !important; color: #fff !important; }
+          /* Make sure any images/svg that rely on currentColor will be visible */
+          .app-root svg { color: inherit; }
+          /* When a component uses glass/translucent backgrounds we keep text readable */
+          .app-root .hero-light-wrapper,
+          .app-root .skill-card,
+          .app-root .project-card,
+          .app-root .contact-card {
+            /* don't inherit the page text color blindly, allow their own styling */
+            color: inherit;
+          }
+        `}</style>
 
-        <section
-          id="blobs-section"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <MetaballsBg
-            count={6}
-            color="255,140,90"
-            minR={60}
-            maxR={180}
-            speed={30}
-            blur={16}
-            z={111}
-            fixed={false}
-            autoReduce={true}
-            debug={false}
-            interactive={true}
-          />
+        <Nav />
+        <main className="app-main">
+          {/* Keep Hero wrapper to guard against forced dark transformations if needed */}
+          <div className="hero-light-wrapper" style={{ position: 'relative' }}>
+            <Hero character="/character.png" />
+          </div>
 
-          <Skills />
-          <ExperienceJourney />
-          <Projects />
-          <Contact />
-          
-        </section>
+          <section id="blobs-section" style={{ position: 'relative', overflow: 'hidden' }}>
+            <MetaballsBg
+              count={6}
+              color="255,140,90"
+              minR={60}
+              maxR={180}
+              speed={30}
+              blur={16}
+              z={-1}
+              fixed={false}
+              autoReduce={true}
+              debug={false}
+              interactive={true}
+            />
 
-        <ScrollToTop />
-      </main>
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <Skills />
+              <ExperienceJourney />
+              <Projects />
+              <Contact />
+            </div>
+          </section>
+
+          <ScrollToTop />
+        </main>
+      </div>
     </>
   );
 }
