@@ -133,27 +133,28 @@ export default function Page() {
         
 
         {/* Metaballs are fixed and start after the hero height so they DON'T appear behind the hero */}
-        <div className="metaballs-wrapper" >
-          <MetaballsBg
+        
+
+        {/* Page content that should appear over metaballs */}
+        <main className="app-content">
+          <section id="blobs-section" style={{ position: 'relative', overflow: 'visible' }}>
+               <MetaballsBg
             count={6}
             color="255,140,90"
             minR={60}
             maxR={180}
             speed={30}
             blur={16}
-            z={0}
-            fixed={true}
+            z={-1}
+            fixed={false}
             autoReduce={true}
             debug={false}
-            interactive={false}
+            interactive={true}
           />
-        </div>
-
-        {/* Page content that should appear over metaballs */}
-        <main className="app-content">
-          <section id="blobs-section" style={{ position: 'relative', overflow: 'visible' }}>
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <Skills />
+             
+       
               <ExperienceJourney />
               <Projects />
               <Contact />
