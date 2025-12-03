@@ -1,18 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import OrbitIcons from './OrbitIcons';
 
 /**
- * Hero.jsx (with added animations)
+ * Hero.jsx
  *
- * - Entrance animations for left content and orbit panel using Framer Motion.
- * - Orbit panel receives a slow floating (y) animation loop.
- * - CTA buttons have subtle hover/tap animations.
- * - TypingText (mobile) is preserved.
- *
- * Drop this file as components/Hero.jsx (requires framer-motion installed).
+ * - Same simplified Hero you tested, but the orbit panel gets brighter while it floats.
+ * - Uses a CSS filter brightness animation in the floating motion wrapper and keeps reduced-motion respect.
+ * - You can tune `BRIGHTNESS_PEAK` and `FLOAT_DISTANCE` below.
  */
 
 function TypingText({ text = 'Web developer', typeSpeed = 80, deleteSpeed = 40, pause = 1100 }) {
@@ -78,16 +75,22 @@ function TypingText({ text = 'Web developer', typeSpeed = 80, deleteSpeed = 40, 
 }
 
 export default function Hero({ character = null }) {
-  const controls = useAnimation();
   const orbitWrapRef = useRef(null);
-
   const [orbitSize, setOrbitSize] = useState(260);
   const [orbitRadius, setOrbitRadius] = useState(96);
   const [orbitSpeed, setOrbitSpeed] = useState(16);
 
+  // Use simple boolean visible flag to animate (avoids useAnimation races)
+  const [visible, setVisible] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  // Tweak these to change how bright / how far it floats
+  const BRIGHTNESS_PEAK = 1.14; // 1 = normal, >1 = brighter; tune as desired
+  const FLOAT_DISTANCE = 8; // px, how far up it floats
+
   useEffect(() => {
-    // start with hidden -> visible animation
-    controls.set('hidden');
+    console.log('[Hero] mounted');
+    console.log('[Hero] prefers-reduced-motion:', shouldReduceMotion);
 
     function measure() {
       const el = orbitWrapRef.current;
@@ -100,11 +103,14 @@ export default function Hero({ character = null }) {
       setOrbitSpeed(w < 420 ? 12 : 16);
     }
 
+    // measure immediately
     measure();
 
+    // set visible after a short delay so initial state can be seen
     const t = setTimeout(() => {
-      // animate in
-      controls.start('visible');
+      // If reduced motion, set visible immediately to avoid entrance animations
+      setVisible(true);
+      console.log('[Hero] setting visible = true (animation start)');
     }, 120);
 
     window.addEventListener('resize', measure);
@@ -118,8 +124,9 @@ export default function Hero({ character = null }) {
       clearTimeout(t);
       window.removeEventListener('resize', measure);
       if (ro && orbitWrapRef.current) ro.unobserve(orbitWrapRef.current);
+      console.log('[Hero] unmounted');
     };
-  }, [controls]);
+  }, [shouldReduceMotion]);
 
   const leftVariants = {
     hidden: { opacity: 0, x: -22 },
@@ -138,21 +145,33 @@ export default function Hero({ character = null }) {
   const ctaWhileTap = { scale: 0.98 };
   const ctaWhileHover = { y: -3 };
 
+  // Build the float animate object; include filter brightness if allowed
+  const floatAnimate = shouldReduceMotion
+    ? {}
+    : {
+        y: [0, -FLOAT_DISTANCE, 0],
+        filter: [`brightness(1)`, `brightness(${BRIGHTNESS_PEAK})`, `brightness(1)`],
+      };
+
+  const floatTransition = shouldReduceMotion
+    ? {}
+    : { duration: 6, repeat: Infinity, ease: 'easeInOut' };
+
   return (
     <section
       id="hero"
       style={{ scrollMarginTop: '96px' }}
-      className="rounded-2xl p-6 sm:p-8 md:p-10 bg-gradient-to-br from-[rgba(255,255,255,0.02)] to-transparent border border-white/5 shadow-2xl relative overflow-hidden mx-auto"
+      className="rounded-2xl p-6 sm:p-8 md:p-10 bg-gradient-to-br from-[rgba(220,238,238,0.09)]  border border-white/5 shadow-2xl relative overflow-hidden mx-auto"
     >
-      <div className="absolute w-full h-full bg-gradient-to-br from-orange-500/30 to-pink-400/10 blur-3xl rounded-tl-full pointer-events-none" />
+      <div className="absolute w-full h-full bg-gradient-to-br from-orange-500/30 to-pink-400/10 blur-3xl rounded-tl-full pointer-events-none hero-glow-overlay" />
 
       <div className="relative z-10 flex flex-col md:flex-row items-stretch gap-8">
-        {/* Left content (animated) */}
+        {/* Left content (animated, state-driven) */}
         <motion.div
           className="md:flex-1 pb-6 md:pb-0 flex flex-col justify-center"
-          variants={leftVariants}
           initial="hidden"
-          animate={controls}
+          animate={visible ? 'visible' : 'hidden'}
+          variants={leftVariants}
         >
           <p className="text-sm sm:text-base font-semibold text-orange-400 mb-3">Hey, I am Rella</p>
 
@@ -167,7 +186,12 @@ export default function Hero({ character = null }) {
           </h1>
 
           <p className="text-sm sm:text-base text-gray-300 max-w-prose mb-6">
-            I build delightful web experiences — animations, UI, and interactive hero sections.
+            <span className="block text-lg font-medium text-white/90">
+              Fueled by curiosity and craft — I design motion-led interfaces that tell stories and solve real problems.
+            </span>
+            <span className="block mt-2 text-sm text-gray-300/90">
+              I care about clarity, delight, and the tiny moments that make a product feel intentional.
+            </span>
           </p>
 
           <div className="flex gap-3 flex-wrap">
@@ -193,19 +217,21 @@ export default function Hero({ character = null }) {
           </div>
         </motion.div>
 
-        {/* Right: responsive orbit panel (animated entrance + slow float) */}
+        {/* Right: orbit panel */}
         <motion.div
           ref={orbitWrapRef}
           className="relative mx-auto md:mx-0 flex-shrink-0 w-full max-w-[680px] md:w-[520px] lg:w-[640px]"
-          variants={rightVariants}
           initial="hidden"
-          animate={controls}
+          animate={visible ? 'visible' : 'hidden'}
+          variants={rightVariants}
+          style={{ willChange: 'transform, filter' }}
         >
-          {/* slow float loop */}
+          {/* slow float loop (disabled when user requests reduced motion) */}
           <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            animate={floatAnimate}
+            transition={floatTransition}
             className="relative w-full rounded-lg shadow-inner sm:h-[380px] md:h-[460px] lg:h-[520px] flex items-center justify-center overflow-hidden"
+            style={{ willChange: 'transform, filter' }}
           >
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
               <OrbitIcons size={orbitSize} radius={orbitRadius} speed={orbitSpeed} />
@@ -215,15 +241,15 @@ export default function Hero({ character = null }) {
             <motion.div
               aria-hidden
               initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: [0, 0.12, 0], scale: [0.96, 1.02, 0.96] }}
-              transition={{ repeat: Infinity, duration: 3.8, ease: 'easeInOut', delay: 0.6 }}
+              animate={shouldReduceMotion ? { opacity: 0 } : { opacity: [0, 0.12, 0], scale: [0.96, 1.02, 0.96] }}
+              transition={shouldReduceMotion ? {} : { repeat: Infinity, duration: 3.8, ease: 'easeInOut', delay: 0.6 }}
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[140px] h-[140px] rounded-full pointer-events-none"
               style={{ background: 'radial-gradient(circle at 40% 35%, rgba(255,160,110,0.06), transparent 40%)' }}
             />
 
             <motion.div
-              animate={{ opacity: [0, 1], y: [8, 0] }}
-              transition={{ duration: 0.7, ease: [0.2, 0.9, 0.3, 1] }}
+              animate={shouldReduceMotion ? {} : { opacity: [0, 1], y: [8, 0] }}
+              transition={shouldReduceMotion ? {} : { duration: 0.7, ease: [0.2, 0.9, 0.3, 1] }}
               className="relative z-10 w-full h-full flex items-center justify-center pointer-events-auto"
             >
               {/* optional center character image or caption could go here */}
@@ -236,6 +262,28 @@ export default function Hero({ character = null }) {
         #hero :global(h1) { text-shadow: 0 6px 28px rgba(0,0,0,0.6); }
         @media (max-width: 640px) {
           #hero { padding-top: 20px; padding-bottom: 20px; }
+        }
+         @keyframes heroGlowPulse {
+          0% {
+            transform: scale(0.950);
+            opacity: 0.92;
+            filter: blur(26px);
+          }
+          50% {
+            transform: scale(1.090);
+            opacity: 1;
+            filter: blur(30px);
+          }
+          100% {
+            transform: scale(0.950);
+            opacity: 0.92;
+            filter: blur(26px);
+          }
+        }
+
+        .hero-glow-overlay {
+          animation: heroGlowPulse 3s ease-in-out infinite;
+          will-change: transform, opacity, filter;
         }
       `}</style>
     </section>

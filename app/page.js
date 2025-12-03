@@ -10,6 +10,7 @@ import Projects from '../component/Projects';
 import Contact from '@/component/Contact';
 import ScrollToTop from '../component/ScrollToTop';
 import DLetter3DLoader from '../component/Dloader';
+import DebugAnimations from '@/component/motion';
 
 /**
  * Page with fixed loader overlay that fully covers the viewport
@@ -114,6 +115,7 @@ export default function Page() {
           <ExperienceJourney />
           <Projects />
           <Contact />
+          
         </section>
 
         <ScrollToTop />
