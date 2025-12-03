@@ -161,7 +161,7 @@ export default function Hero({ character = null }) {
     <section
       id="hero"
       style={{ scrollMarginTop: '96px' }}
-      className="rounded-2xl p-6 sm:p-8 md:p-10 bg-gradient-to-br from-[rgba(220,238,238,0.09)]  border border-white/5 shadow-2xl relative overflow-hidden mx-auto"
+      className="rounded-2xl p-6 sm:p-8 md:p-10 bg-gradient-to-br from-[rgba(220,238,238,0.09)]  border border-white/5 shadow-2xl relative overflow-hidden mx-auto bg-black z-1"
     >
       <div className="absolute w-full h-full bg-gradient-to-br from-orange-500/30 to-pink-400/10 blur-3xl rounded-tl-full pointer-events-none hero-glow-overlay" />
 

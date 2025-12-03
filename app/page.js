@@ -13,12 +13,16 @@ import DLetter3DLoader from '../component/Dloader';
 import DebugAnimations from '@/component/motion';
 
 /**
- * Page with a black main background so all components render on a dark canvas.
- * - Wraps the whole app content in a root container with bg-black and text-white.
- * - Adds a small helper class .app-main that ensures children can use their own glassy backgrounds
- *   and that text defaults to white unless components explicitly override it.
+ * Page that shows Metaballs for the main site background, but NOT behind the Hero.
  *
- * Drop this file into app/page.jsx replacing your existing file.
+ * Approach:
+ * - Render Hero first (on top, with its own background/overlay).
+ * - Place MetaballsBg in a wrapper that starts after the Hero (so blobs do not appear behind it).
+ * - The metaballs wrapper is full-bleed and fixed, but positioned below the hero using CSS `top` tied to the hero's bottom via a CSS variable.
+ * - The Hero keeps its own high-contrast overlay so it always hides/meters the blobs.
+ *
+ * If your Hero has dynamic height you can adjust --hero-height (inlined here) or set it in CSS to match.
+ * If you prefer to compute hero height at runtime, we can add a ref + JS to measure and set the CSS variable instead.
  */
 
 export default function Page() {
@@ -67,42 +71,87 @@ export default function Page() {
 
       <div className="app-root bg-black text-white min-h-screen">
         <style>{`
-          /* Ensures default body-level background is black for any non-tailwind consumers */
           .app-root { background-color: #000 !important; color: #fff !important; }
-          /* Make sure any images/svg that rely on currentColor will be visible */
-          .app-root svg { color: inherit; }
-          /* When a component uses glass/translucent backgrounds we keep text readable */
-          .app-root .hero-light-wrapper,
-          .app-root .skill-card,
-          .app-root .project-card,
-          .app-root .contact-card {
-            /* don't inherit the page text color blindly, allow their own styling */
-            color: inherit;
+
+          /* Hero-safe area: hero must appear above the metaballs */
+          .hero-wrapper { position: relative; z-index: 30; }
+
+          /* The metaballs wrapper is fixed and full-bleed, but visually starts BELOW the hero.
+             Adjust --hero-height to match your hero height. */
+          .metaballs-wrapper {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: var(--hero-height, 420px); /* default hero height; change if needed */
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+          }
+          .metaballs-wrapper canvas,
+          .metaballs-wrapper svg {
+            mix-blend-mode: screen !important;
+            opacity: 0.98 !important;
+            filter: saturate(1.12) blur(10px);
+          }
+
+          /* Main content sits above metaballs */
+          .app-content { position: relative; z-index: 10; }
+
+          /* Hero inner overlay to ensure it hides metaballs underneath and remains readable */
+          .hero-contrast-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.88));
+            mix-blend-mode: normal;
+            z-index: 5;
+            border-radius: inherit;
+          }
+
+          /* Ensure hero text/colors are preserved and readable */
+          .hero-wrapper h1,
+          .hero-wrapper p,
+          .hero-wrapper a,
+          .hero-wrapper button {
+            color: #081019 !important;
+            -webkit-text-fill-color: #081019 !important;
+          }
+
+          /* On small screens we may need a smaller hero height */
+          @media (max-width: 640px) {
+            :root { --hero-height: 420px; }
           }
         `}</style>
 
         <Nav />
-        <main className="app-main">
-          {/* Keep Hero wrapper to guard against forced dark transformations if needed */}
-          <div className="hero-light-wrapper" style={{ position: 'relative' }}>
-            <Hero character="/character.png" />
-          </div>
 
-          <section id="blobs-section" style={{ position: 'relative', overflow: 'hidden' }}>
-            <MetaballsBg
-              count={6}
-              color="255,140,90"
-              minR={60}
-              maxR={180}
-              speed={30}
-              blur={16}
-              z={-1}
-              fixed={false}
-              autoReduce={true}
-              debug={false}
-              interactive={true}
-            />
+        {/* HERO: will be above metaballs */}
+      
+          {/* Optional overlay to completely block any background from bleeding through the hero */}
 
+          <Hero character="/character.png" />
+        
+
+        {/* Metaballs are fixed and start after the hero height so they DON'T appear behind the hero */}
+        <div className="metaballs-wrapper" >
+          <MetaballsBg
+            count={6}
+            color="255,140,90"
+            minR={60}
+            maxR={180}
+            speed={30}
+            blur={16}
+            z={0}
+            fixed={true}
+            autoReduce={true}
+            debug={false}
+            interactive={false}
+          />
+        </div>
+
+        {/* Page content that should appear over metaballs */}
+        <main className="app-content">
+          <section id="blobs-section" style={{ position: 'relative', overflow: 'visible' }}>
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <Skills />
               <ExperienceJourney />
