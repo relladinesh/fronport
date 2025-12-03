@@ -456,7 +456,9 @@ export default function Nav() {
 
                   <div className="mt-6 border-t border-white/10 pt-6 text-sm text-gray-300">
                     <p>Contact</p>
-                    <p className="text-slate-300">info@noah.example</p>
+                    <a href="relladinesh19@gmail.com" className="text-slate-300">
+  relladinesh19@gmail.com
+</a>
                   </div>
                 </div>
               </motion.nav>

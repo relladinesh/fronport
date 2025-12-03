@@ -104,7 +104,7 @@ export default function Page() {
             maxR={180}
             speed={30}
             blur={16}
-            z={-1}
+            z={111}
             fixed={false}
             autoReduce={true}
             debug={false}
