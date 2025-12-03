@@ -47,7 +47,7 @@ const sampleProjects = [
     title: 'Quick Hop',
     short: 'Ride-hailing app (Uber-style) with booking and live driver tracking.',
     long: 'Quick Hop — an Uber-like ride-hailing app providing booking, live driver tracking, ride history and fare payments. Built with React and Node, integrates Stripe for payments and includes an admin dashboard for management.',
-    tech: ['React', 'Node', 'Stripe'],
+    tech: ['React', 'Node', ],
     image: '/p1.png',
     code: 'https://github.com/relladinesh/QuickHop',
   },
